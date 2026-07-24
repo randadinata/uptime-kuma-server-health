@@ -12,6 +12,7 @@ DISK_INODE_USAGE_ALERT_PERCENT_THRESHOLD=70 # Alerts if any filesystem is runnin
 CPU_USAGE_PERCENT_THRESHOLD=80 # Alerts if CPU usage averages greater than this across 5 minutes
 MEM_USAGE_PERCENT_THRESHOLD=80 # Alerts if RAM usage rises over this percentage, ZFS ARC counts as used
 ZIMBRA_QUEUE=100 # Set to a number > 0 to alert if Zimbra mail queue exceeds this (e.g., 50)
+RUN_CMD="" # Set to a command to run it and report down if exit code is non-zero (e.g., "curl -sf http://localhost:8080")
 
 # ZFS health
 ZFS_STATUS="OK"
@@ -96,6 +97,18 @@ else
 fi
 echo "$ZIMBRA_QUEUE_STATUS"
 
+# Custom command check
+RUN_CMD_STATUS="OK"
+if [[ -n "$RUN_CMD" ]]; then
+  echo -n "Running custom command: "
+  eval "$RUN_CMD"
+  RUN_CMD_EXIT=$?
+  if [[ $RUN_CMD_EXIT -ne 0 ]]; then
+    RUN_CMD_STATUS="Command failed with exit code $RUN_CMD_EXIT"
+  fi
+  echo "$RUN_CMD_STATUS"
+fi
+
 #
 # Put it all together
 #
@@ -120,6 +133,10 @@ fi
 if [[ $ZIMBRA_QUEUE_STATUS != "OK" ]]; then
   IS_OK=0
   ERROR_MESSAGES+=("Zimbra queue alert: $ZIMBRA_QUEUE_STATUS")
+fi
+if [[ $RUN_CMD_STATUS != "OK" ]]; then
+  IS_OK=0
+  ERROR_MESSAGES+=("Custom command alert: $RUN_CMD_STATUS")
 fi
 
 
